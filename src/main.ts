@@ -2,12 +2,13 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cors from 'cors'
+import helmet from 'helmet';
+
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  // Configuração do CORS para permitir solicitações de qualquer origem
   app.use(cors());
+  app.use(helmet());
 
   const config = new DocumentBuilder()
     .setTitle('API de Pedidos')

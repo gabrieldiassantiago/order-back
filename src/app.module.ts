@@ -5,8 +5,7 @@ import { OrderModule } from './order/order.module';
 import { WhatsappModule } from './zap/zap.module';
 
 @Module({
-  imports: [PrismaModule, ProductModule, OrderModule,WhatsappModule ],
-  
+  imports: [PrismaModule, ProductModule, OrderModule, WhatsappModule ],
 
 })
 export class AppModule {}

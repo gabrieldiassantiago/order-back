@@ -49,7 +49,4 @@ export class ProductService {
   async deleteAllProducts() {
     return this.prisma.product.deleteMany();
   }
-
-  
-
 }

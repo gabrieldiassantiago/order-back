@@ -426,3 +426,6 @@ Thumbs.db
 # Ignorar lock files de gerenciadores de pacotes
 package-lock.json
 yarn.lock
+
+
+auth_info
