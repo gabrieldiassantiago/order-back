@@ -133,7 +133,6 @@ export class BaileysService {
     }
   }
   
-
   async handleProductListRequest(remoteJid: string) {
     try {
       const products = await this.prisma.product.findMany({
@@ -156,4 +155,6 @@ export class BaileysService {
       await this.sock.sendMessage(remoteJid, { text: 'Erro ao buscar lista de produtos.' });
     }
   }
+
+  
 }

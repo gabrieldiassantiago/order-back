@@ -76,6 +76,7 @@ export class OrderService {
       total = products.reduce((sum, product) => sum + product.price, 0);
     }
 
+    
     const updateData: any = {
       total,
       address: data.address,
@@ -106,7 +107,7 @@ export class OrderService {
   async getOrderStatus(phone: string) {
     const order = await this.prisma.order.findFirst({
       where: { phone },
-      orderBy: { createdAt: 'desc' }, // Pega o pedido mais recente
+      orderBy: { createdAt: 'desc' }, 
     });
 
     if (!order) {

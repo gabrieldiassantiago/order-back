@@ -398,3 +398,31 @@ Temporary Items
 dist
 .webpack
 .serverless/**/*.zip
+.vercel
+
+# Ignorar arquivos de log
+*.log
+
+# Ignorar diretórios de dependências
+node_modules/
+vendor/
+
+# Ignorar arquivos de build
+dist/
+build/
+
+# Ignorar arquivos de configuração do sistema operacional
+.DS_Store
+Thumbs.db
+
+# Ignorar arquivos de configuração do IDE
+.vscode/
+.idea/
+
+# Ignorar arquivos de ambiente
+.env
+.env.local
+
+# Ignorar lock files de gerenciadores de pacotes
+package-lock.json
+yarn.lock

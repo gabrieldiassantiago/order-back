@@ -30,11 +30,14 @@ export class ProductController {
     return this.productService.deleteProduct(id);
   }
 
-  // Adicione um novo endpoint para deletar todos os produtos sabendo que ja ta no service 
   @Delete()
   async deleteAllProducuts() {
     return this.productService.deleteAllProducts();
   }
+
   
+
+
+
   
 }

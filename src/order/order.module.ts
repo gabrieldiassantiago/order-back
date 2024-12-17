@@ -8,5 +8,6 @@ import { WhatsappModule } from 'src/zap/zap.module';
   imports: [WhatsappModule],
   providers: [OrderService, PrismaService],
   controllers: [OrderController],
+  
 })
 export class OrderModule {}
