@@ -7,28 +7,56 @@ datasource db {
   url      = "mongodb+srv://gab21:ddtank09@cluster0.v8ntxkx.mongodb.net/appbeta"
 }
 
+enum OrderStatus {
+  PENDENTE
+  PREPARANDO
+  ENVIADO
+  CANCELADO
+  
+}
+
 model Product {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   name        String
   price       Float
-  stock       Int      // Certifique-se de que este campo não permite valores `null`
-  category    String   // Adicione este campo
+  stock       Int
+  category    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  availability Boolean  @default(true)
+  orders      ProductOrder[]
 }
 
 model Order {
-  id             String   @id @default(auto()) @map("_id") @db.ObjectId
-  productIds     String[] // Lista de IDs dos produtos
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  products       ProductOrder[]
   total          Float
   address        String
   paymentMethod  String
   name           String
-  email          String
   phone          String
-  status         String   // Adicione o campo status
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  status         OrderStatus
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deliveryMethod String
+  neighborhoodId String?
 }
 
-// 
+model EntregasBairros {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  value       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ProductOrder {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  productId   String   @db.ObjectId
+  orderId     String   @db.ObjectId
+  quantity    Int
+  product     Product  @relation(fields: [productId], references: [id])
+  order       Order    @relation(fields: [orderId], references: [id])
+
+  @@unique([productId, orderId])
+}

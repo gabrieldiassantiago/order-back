@@ -1,27 +1,27 @@
 import { Injectable, Logger } from '@nestjs/common';
 import makeWASocket, { DisconnectReason, useMultiFileAuthState } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
-import qrcode from 'qrcode-terminal';
+import * as qrcode from 'qrcode-terminal';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class BaileysService {
   private readonly logger = new Logger(BaileysService.name);
   private sock: any;
+  private awaitingNewAddress: { [key: string]: boolean } = {}; // Adiciona esta variável
 
   constructor(
     private readonly prisma: PrismaService,
   ) {
     this.initialize();
   }
-
   async initialize() {
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info');
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
     this.sock = makeWASocket({
       auth: state,
       printQRInTerminal: true,
     });
-
+  
     this.sock.ev.on('creds.update', saveCreds);
     this.sock.ev.on('connection.update', (update) => {
       const { connection, lastDisconnect, qr } = update;
@@ -33,28 +33,71 @@ export class BaileysService {
       } else if (connection === 'open') {
         this.logger.log('Conectado ao WhatsApp');
       }
-
+  
       if (qr) {
         qrcode.generate(qr, { small: true });
       }
     });
-
+  
     this.sock.ev.on('messages.upsert', async (message) => {
       const msg = message.messages[0];
-      this.logger.log(`Mensagem recebida: ${JSON.stringify(msg)}`);
+      
+      // Ignore mensagens enviadas pelo próprio bot
+      if (msg.key.fromMe) {
+        return;
+      }
+  
+      const remoteJid = msg.key.remoteJid;
       const text = msg.message?.conversation?.toLowerCase();
-      if (text === 'quero acompanhar meu pedido') {
-        this.logger.log('Comando "quero acompanhar meu pedido" recebido');
-        await this.handleOrderStatusRequest(msg.key.remoteJid);
-      } else if (text === 'quero cancelar meu pedido') {
-        this.logger.log('Comando "quero cancelar meu pedido" recebido');
-        await this.handleOrderCancelRequest(msg.key.remoteJid);
-      } else if (text === '/produtos') {
-        this.logger.log('Comando "/produtos" recebido');
-        await this.handleProductListRequest(msg.key.remoteJid);
+  
+      if (this.awaitingNewAddress[remoteJid]) {
+        // Se está aguardando um novo endereço, atualiza o endereço e encerra o fluxo
+        await this.handleOrderAddressUpdate(remoteJid, text);
+        this.awaitingNewAddress[remoteJid] = false;
+      } else {
+        // Caso contrário, trata outras mensagens normalmente
+        if (text === 'quero acompanhar meu pedido') {
+          await this.handleOrderStatusRequest(remoteJid);
+        } else if (text === 'quero cancelar meu pedido') {
+          await this.handleOrderCancelRequest(remoteJid);
+        } else if (text === '/produtos') {
+          await this.handleProductListRequest(remoteJid);
+        } else if (text === '/alterarendereco') {
+          await this.handleAddressChangeRequest(remoteJid);
+        }
       }
     });
   }
+  async handleAddressChangeRequest(remoteJid: string) {
+    try {
+      let phone = remoteJid.split('@')[0].replace(/\D/g, '');
+      if (phone.startsWith('55')) {
+        phone = phone.substring(2); 
+      }
+  
+      const order = await this.prisma.order.findFirst({
+        where: { phone }, 
+        orderBy: { createdAt: 'desc' }, 
+      });
+  
+      if (!order) {
+        await this.sock.sendMessage(remoteJid, { text: 'Pedido não encontrado.' });
+        return;
+      }
+  
+      // Envia o endereço atual e solicita um novo endereço
+      const currentAddressMessage = `Seu endereço atual é: ${order.address}. Por favor, insira o novo endereço.`;
+      await this.sock.sendMessage(remoteJid, { text: currentAddressMessage });
+  
+      // Marca que está aguardando um novo endereço deste usuário
+      this.awaitingNewAddress[remoteJid] = true;
+    } catch (error) {
+      this.logger.error(`Erro ao buscar endereço atual: ${error.message}`);
+      await this.sock.sendMessage(remoteJid, { text: 'Erro ao buscar endereço atual.' });
+    }
+  }
+
+
 
   async sendOrderConfirmation(phone: string, message: string) {
     try {
@@ -65,7 +108,6 @@ export class BaileysService {
         }
 
       await this.sock.sendMessage(`${phone}@s.whatsapp.net`, { text: message });
-      this.logger.log(`Mensagem enviada para ${phone}`);
     } catch (error) {
       this.logger.error(`Erro ao enviar mensagem: ${error.message}`);
       throw new Error('Erro ao enviar mensagem de confirmação');
@@ -78,7 +120,6 @@ export class BaileysService {
       if (phone.startsWith('55')) {
         phone = phone.substring(2); 
       }
-      this.logger.log(`Número de telefone extraído: ${phone}`);
 
       const order = await this.prisma.order.findFirst({
         where: { phone }, 
@@ -86,17 +127,46 @@ export class BaileysService {
       });
 
       if (!order) {
-        this.logger.log(`Pedido não encontrado para o número: ${phone}`);
         await this.sock.sendMessage(remoteJid, { text: 'Pedido não encontrado.' });
         return;
       }
 
       const statusMessage = `O status do seu pedido é: ${order.status}`;
       await this.sock.sendMessage(remoteJid, { text: statusMessage });
-      this.logger.log(`Status do pedido enviado para ${remoteJid}`);
     } catch (error) {
       this.logger.error(`Erro ao buscar status do pedido: ${error.message}`);
       await this.sock.sendMessage(remoteJid, { text: 'Erro ao buscar status do pedido.' });
+    }
+  }
+
+  //funcao para atualizar endereco do pedido no banco de dados 
+  async handleOrderAddressUpdate(remoteJid: string, address: string) {
+    try {
+      let phone = remoteJid.split('@')[0].replace(/\D/g, '');
+      if (phone.startsWith('55')) {
+        phone = phone.substring(2); 
+      }
+
+      const order = await this.prisma.order.findFirst({
+        where: { phone }, 
+        orderBy: { createdAt: 'desc' }, 
+      });
+
+      if (!order) {
+        await this.sock.sendMessage(remoteJid, { text: 'Pedido não encontrado.' });
+        return;
+      }
+
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: { address: address },
+      });
+
+      const updateMessage = `Seu endereço foi atualizado com sucesso.`;
+      await this.sock.sendMessage(remoteJid, { text: updateMessage });
+    } catch (error) {
+      this.logger.error(`Erro ao atualizar endereço do pedido: ${error.message}`);
+      await this.sock.sendMessage(remoteJid, { text: 'Erro ao atualizar endereço do pedido.' });
     }
   }
 
@@ -106,7 +176,6 @@ export class BaileysService {
       if (phone.startsWith('55')) {
         phone = phone.substring(2); 
       }
-      this.logger.log(`Número de telefone extraído: ${phone}`);
 
       const order = await this.prisma.order.findFirst({
         where: { phone }, 
@@ -114,19 +183,17 @@ export class BaileysService {
       });
 
       if (!order) {
-        this.logger.log(`Pedido não encontrado para o número: ${phone}`);
         await this.sock.sendMessage(remoteJid, { text: 'Pedido não encontrado.' });
         return;
       }
 
       await this.prisma.order.update({
         where: { id: order.id },
-        data: { status: 'canceled' },
+        data: { status: 'CANCELADO' },
       });
 
       const cancelMessage = `Seu pedido foi cancelado com sucesso.`;
       await this.sock.sendMessage(remoteJid, { text: cancelMessage });
-      this.logger.log(`Pedido cancelado para ${remoteJid}`);
     } catch (error) {
       this.logger.error(`Erro ao cancelar pedido: ${error.message}`);
       await this.sock.sendMessage(remoteJid, { text: 'Erro ao cancelar pedido.' });
@@ -149,12 +216,9 @@ export class BaileysService {
 
       const productList = products.map(product => `${product.name}: R$${product.price}`).join('\n');
       await this.sock.sendMessage(remoteJid, { text: `Produtos disponíveis:\n${productList}` });
-      this.logger.log(`Lista de produtos enviada para ${remoteJid}`);
     } catch (error) {
       this.logger.error(`Erro ao buscar lista de produtos: ${error.message}`);
       await this.sock.sendMessage(remoteJid, { text: 'Erro ao buscar lista de produtos.' });
     }
   }
-
-  
 }

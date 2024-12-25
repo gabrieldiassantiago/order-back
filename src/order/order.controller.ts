@@ -1,13 +1,26 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Put, Param, Delete, Get } from '@nestjs/common';
 import { OrderService } from './order.service';
+import { CreateOrderDto } from './dtos/create-order.dto';
+import { UpdateOrderDto } from './dtos/update-order.dto';
+
 
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Post()
-  async createOrder(@Body() body) {
-    return this.orderService.createOrder(body);
+  async createOrder(@Body() createOrderDto: CreateOrderDto) {
+    return this.orderService.createOrder(createOrderDto);
+  }
+
+  @Put(':id')
+  async updateOrder(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
+    return this.orderService.updateOrder(id, updateOrderDto);
+  }
+
+  @Delete(':id')
+  async deleteOrder(@Param('id') id: string) {
+    return this.orderService.deleteOrder(id);
   }
 
   @Get()
@@ -20,16 +33,6 @@ export class OrderController {
     return this.orderService.getOrderById(id);
   }
 
-  @Put(':id')
-  async updateOrder(@Param('id') id: string, @Body() body) {
-    return this.orderService.updateOrder(id, body);
-  }
-
-  @Delete(':id')
-  async deleteOrder(@Param('id') id: string) {
-    return this.orderService.deleteOrder(id);
-  }
-
   @Delete()
   async deleteAllOrders() {
     return this.orderService.deleteAllOrders();
@@ -39,6 +42,4 @@ export class OrderController {
   async getOrderStatus(@Param('phone') phone: string) {
     return this.orderService.getOrderStatus(phone);
   }
-
-
 }

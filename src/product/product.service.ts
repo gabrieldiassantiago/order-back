@@ -1,11 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+//tipagem do produto que será criado no banco de dados 
+export type Product = {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
+  category: string;
+  availability: boolean;
+};
+
+
+
 @Injectable()
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createProduct(data: { name: string; price: number; stock: number; category: string }) {
+  async createProduct(data: { name: string; price: number; stock: number; category: string; availability: boolean }) {
     const productData = {
       ...data,
       price: parseFloat(data.price as any),
@@ -27,7 +39,7 @@ export class ProductService {
     });
   }
 
-  async updateProduct(id: string, data: { name?: string; description?: string; price?: number; stock?: number; imageUrl?: string; category?: string }) {
+  async updateProduct(id: string, data: { name?: string; description?: string; price?: number; stock?: number; imageUrl?: string; category?: string; availability?: boolean }) {
     const { id: _, ...updateData } = data as any;
 
     if (updateData.price) {
@@ -39,6 +51,7 @@ export class ProductService {
       data: updateData,
     });
   }
+
 
   async deleteProduct(id: string) {
     return this.prisma.product.delete({

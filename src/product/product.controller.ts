@@ -31,13 +31,7 @@ export class ProductController {
   }
 
   @Delete()
-  async deleteAllProducuts() {
+  async deleteAllProducts() {
     return this.productService.deleteAllProducts();
   }
-
-  
-
-
-
-  
 }
