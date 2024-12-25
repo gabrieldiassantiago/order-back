@@ -4,6 +4,7 @@ import { BaileysService } from 'src/zap/zap.service';
 import { CreateOrderDto } from './dtos/create-order.dto';
 import { UpdateOrderDto } from './dtos/update-order.dto';
 import { OrdersGateway } from './order.gateway';
+import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class OrderService {
@@ -56,7 +57,7 @@ export class OrderService {
         name: data.name,
         phone: data.phone,
         deliveryMethod: data.deliveryMethod,
-        status: data.status || 'PENDENTE',
+        status: data.status || OrderStatus.PENDENTE,
       },
       include: {
         products: true,

@@ -12,7 +12,6 @@ enum OrderStatus {
   PREPARANDO
   ENVIADO
   CANCELADO
-  
 }
 
 model Product {
@@ -60,3 +59,4 @@ model ProductOrder {
 
   @@unique([productId, orderId])
 }
+
