@@ -64,7 +64,7 @@ export class OrderService {
       },
     });
 
-    this.ordersGateway.emitOrderUpdate(order); // Emitir evento de atualização de pedido
+    this.ordersGateway.emitOrderUpdate(order);
 
     this.logger.log(`Pedido criado: ${JSON.stringify(order)}`);
 
@@ -121,11 +121,8 @@ export class OrderService {
       throw new Error('Pedido não encontrado');
     }
 
-    if (existingOrder.status === 'CANCELADO') {
-      throw new Error('Não é possível alterar o status de um pedido confirmado ou cancelado');
-    }
-
     let total: number | undefined;
+    let updateMessage = 'Seu pedido foi atualizado. Alterações:\n';
 
     if (data.products) {
       const productIds = data.products.map(p => p.productId);
@@ -137,6 +134,8 @@ export class OrderService {
         const productOrder = data.products.find(p => p.productId === product.id);
         return sum + product.price * (productOrder ? productOrder.quantity : 0);
       }, 0);
+
+      updateMessage += `🔄 Produtos atualizados.\n`;
     }
 
     if (data.neighborhoodId) {
@@ -149,16 +148,24 @@ export class OrderService {
       }
 
       total = (total || existingOrder.total) + neighborhood.value;
+      updateMessage += `🏘️ Bairro atualizado.\n`;
     }
 
     const updateData: any = {
       total,
-      address: data.address,
-      neighborhoodId: data.neighborhoodId,
-      paymentMethod: data.paymentMethod,
-      deliveryMethod: data.deliveryMethod,
-      status: data.status,
+      name: data.name || existingOrder.name,
+      phone: data.phone || existingOrder.phone,
+      address: data.address || existingOrder.address,
+      neighborhoodId: data.neighborhoodId || existingOrder.neighborhoodId,
+      paymentMethod: data.paymentMethod || existingOrder.paymentMethod,
+      deliveryMethod: data.deliveryMethod || existingOrder.deliveryMethod,
+      status: data.status || existingOrder.status,
     };
+
+    if (data.address) updateMessage += `🏠 Endereço atualizado.\n`;
+    if (data.paymentMethod) updateMessage += `💳 Método de pagamento atualizado.\n`;
+    if (data.deliveryMethod) updateMessage += `🚚 Método de entrega atualizado.\n`;
+    if (data.status) updateMessage += `🔔 Status atualizado para ${data.status}.\n`;
 
     if (data.products) {
       updateData.products = {
@@ -178,9 +185,8 @@ export class OrderService {
 
     this.logger.log(`Pedido atualizado: ${JSON.stringify(order)}`);
 
-    const statusMessage = `O status do seu pedido foi atualizado para: ${data.status}`;
     try {
-      await this.baileysService.sendOrderConfirmation(order.phone, statusMessage);
+      await this.baileysService.sendOrderConfirmation(order.phone, updateMessage);
       this.logger.log(`Mensagem de atualização enviada para ${order.phone}`);
     } catch (error) {
       this.logger.error(`Erro ao enviar mensagem de atualização: ${error.message}`);
@@ -200,12 +206,10 @@ export class OrderService {
       throw new Error('Pedido não encontrado');
     }
 
-    // Deleta todas as relações ProductOrder primeiro
     await this.prisma.productOrder.deleteMany({
       where: { orderId: id },
     });
 
-    // Agora deleta o pedido
     const order = await this.prisma.order.delete({
       where: { id },
       include: { products: true },
@@ -219,7 +223,7 @@ export class OrderService {
       this.logger.error(`Erro ao enviar mensagem de cancelamento: ${error.message}`);
     }
 
-    this.ordersGateway.emitOrderUpdate(order); // Emitir evento de atualização de pedido
+    this.ordersGateway.emitOrderUpdate(order);
 
     return order;
   }
@@ -265,13 +269,10 @@ export class OrderService {
     return { ...order, products: productOrders, neighborhood };
   }
 
-  // Deletar todos os pedidos
   async deleteAllOrders() {
     try {
-      // Deleta todas as relações ProductOrder primeiro
       await this.prisma.productOrder.deleteMany({});
 
-      // Agora deleta todos os pedidos
       const deletedOrders = await this.prisma.order.deleteMany({});
 
       this.logger.log(`Todos os pedidos foram deletados com sucesso.`);

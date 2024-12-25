@@ -21,7 +21,7 @@ export class CreateOrderDto {
 
   @IsString()
   @IsOptional()
-  status?: 'PENDENTE' | 'CONFIRMADO' | 'CANCELADO';
+  status?: 'PENDENTE' | 'PREPARANDO' | 'ENVIADO' | 'CANCELADO';
 
   @IsString()
   deliveryMethod: string;
