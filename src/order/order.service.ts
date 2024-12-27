@@ -58,6 +58,7 @@ export class OrderService {
         phone: data.phone,
         deliveryMethod: data.deliveryMethod,
         status: data.status || OrderStatus.PENDENTE,
+        changeFor: data.changeFor || null,
       },
       include: {
         products: true,
@@ -76,6 +77,7 @@ export class OrderService {
     ${neighborhood ? `🏘️ *Bairro:* ${neighborhood.name}` : ''}
     💳 *Método de Pagamento:* ${data.paymentMethod}
     🚚 *Método de Entrega:* ${data.deliveryMethod}
+    ${data.changeFor ? `💵 *Troco para:* R$${data.changeFor.toFixed(2)}` : ''}
     💰 *Total:* R$${total.toFixed(2)}
 
     🛒 *Itens do Pedido:*
@@ -283,17 +285,17 @@ export class OrderService {
     }
   }
 
-  async getOrderStatus(phone: string) {
-    const order = await this.prisma.order.findFirst({
+   async getOrderStatus(phone: string) {
+    const orders = await this.prisma.order.findMany({
       where: { phone },
       orderBy: { createdAt: 'desc' },
-      include: { products: true },
+      include: { products: { include: { product: true } } },
     });
 
-    if (!order) {
+    if (!orders.length) {
       throw new Error('Pedido não encontrado');
     }
 
-    return `O status do seu pedido é: ${order.status}`;
+    return orders;
   }
 }

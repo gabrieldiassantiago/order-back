@@ -15,19 +15,20 @@ enum OrderStatus {
 }
 
 model Product {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  price       Float
-  stock       Int
-  category    String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  availability Boolean  @default(true)
-  orders      ProductOrder[]
+  id           String          @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  price        Float
+  stock        Int
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  availability Boolean         @default(true)
+  orders       ProductOrder[]
+  categoryId   String?         @db.ObjectId
+  category     Category?       @relation(fields: [categoryId], references: [id])
 }
 
 model Order {
-  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
   products       ProductOrder[]
   total          Float
   address        String
@@ -35,18 +36,21 @@ model Order {
   name           String
   phone          String
   status         OrderStatus
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   deliveryMethod String
   neighborhoodId String?
+  changeFor      Float?  
+         // Novo campo para a quantidade de troco
+
 }
 
 model EntregasBairros {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  name        String
-  value       Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  value     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
 }
 
 model ProductOrder {
@@ -60,3 +64,10 @@ model ProductOrder {
   @@unique([productId, orderId])
 }
 
+model Category {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  products  Product[]
+}

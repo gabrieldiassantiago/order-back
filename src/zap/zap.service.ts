@@ -1,44 +1,61 @@
 import { Injectable, Logger } from '@nestjs/common';
-import makeWASocket, { DisconnectReason, useMultiFileAuthState } from '@whiskeysockets/baileys';
+import makeWASocket, { DisconnectReason, fetchLatestBaileysVersion, useMultiFileAuthState } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
-import * as qrcode from 'qrcode-terminal';
 import { PrismaService } from 'src/prisma/prisma.service';
+import pino from "pino";
+
+// Define the union type for connection status
+type ConnectionStatus = 'Connected' | 'Disconnected';
 
 @Injectable()
 export class BaileysService {
   private readonly logger = new Logger(BaileysService.name);
   private sock: any;
-  private awaitingNewAddress: { [key: string]: boolean } = {}; // Adiciona esta variável
+  private awaitingNewAddress: { [key: string]: boolean } = {};
+  private connectionStatus: ConnectionStatus = 'Disconnected'; // Use the union type
 
   constructor(
     private readonly prisma: PrismaService,
   ) {
     this.initialize();
   }
+
   async initialize() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+    const { version } = await fetchLatestBaileysVersion();
+    
     this.sock = makeWASocket({
+      logger: pino({ level: "silent" }) as any,
+      browser: ['Mac OS', 'chrome', '121.0.6167.159'],
+      printQRInTerminal: false,
+      mobile: false,
       auth: state,
-      printQRInTerminal: true,
+      version
     });
-  
+
+    state.creds.registered = true;
+    saveCreds();
+
     this.sock.ev.on('creds.update', saveCreds);
-    this.sock.ev.on('connection.update', (update) => {
-      const { connection, lastDisconnect, qr } = update;
+    this.sock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect } = update;
+        
       if (connection === 'close') {
-        const shouldReconnect = (lastDisconnect?.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
+        const shouldReconnect = (lastDisconnect.error as Boom)?.output?.statusCode !== DisconnectReason.loggedOut;
         if (shouldReconnect) {
+          console.log("Reconectando...");
+          this.connectionStatus = 'Disconnected';
           this.initialize();
+        } else {
+          this.connectionStatus = 'Disconnected';
+          this.logger.log('Desconectado do WhatsApp');
         }
       } else if (connection === 'open') {
+        this.connectionStatus = 'Connected';
         this.logger.log('Conectado ao WhatsApp');
       }
-  
-      if (qr) {
-        qrcode.generate(qr, { small: true });
-      }
     });
-  
+
     this.sock.ev.on('messages.upsert', async (message) => {
       const msg = message.messages[0];
       
@@ -68,6 +85,25 @@ export class BaileysService {
       }
     });
   }
+
+  async generatePairingCode(phoneNumber: string): Promise<string> {
+  //se a conectao estiver desconectada, força a reconexão antes de gerar o código de emparelhamento, para garantir que o código seja gerado corretamente
+    let code = await this.sock.requestPairingCode(phoneNumber);
+    return `Your code: ${code}\nOpen your WhatsApp, go to Connected Devices > Connect a new Device > Connect using phone number.`;
+  }
+
+  async getConnectionStatus(): Promise<ConnectionStatus> {
+    return this.connectionStatus;
+  }
+
+  async disconnect(): Promise<void> {
+    if (this.sock) {
+      await this.sock.logout();
+      this.connectionStatus = 'Disconnected';
+      this.logger.log('Desconectado do WhatsApp');
+    }
+  }
+
   async handleAddressChangeRequest(remoteJid: string) {
     try {
       let phone = remoteJid.split('@')[0].replace(/\D/g, '');
@@ -96,8 +132,6 @@ export class BaileysService {
       await this.sock.sendMessage(remoteJid, { text: 'Erro ao buscar endereço atual.' });
     }
   }
-
-
 
   async sendOrderConfirmation(phone: string, message: string) {
     try {
