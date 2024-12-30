@@ -25,6 +25,7 @@ model Product {
   orders       ProductOrder[]
   categoryId   String?         @db.ObjectId
   category     Category?       @relation(fields: [categoryId], references: [id])
+  additions    Addition[]
 }
 
 model Order {
@@ -37,12 +38,10 @@ model Order {
   phone          String
   status         OrderStatus
   createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  updatedAt      DateTime       @default(now())
   deliveryMethod String
   neighborhoodId String?
-  changeFor      Float?  
-         // Novo campo para a quantidade de troco
-
+  changeFor      Float?
 }
 
 model EntregasBairros {
@@ -54,12 +53,13 @@ model EntregasBairros {
 }
 
 model ProductOrder {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  productId   String   @db.ObjectId
-  orderId     String   @db.ObjectId
+  id          String             @id @default(auto()) @map("_id") @db.ObjectId
+  productId   String             @db.ObjectId
+  orderId     String             @db.ObjectId
   quantity    Int
-  product     Product  @relation(fields: [productId], references: [id])
-  order       Order    @relation(fields: [orderId], references: [id])
+  product     Product            @relation(fields: [productId], references: [id])
+  order       Order              @relation(fields: [orderId], references: [id])
+  additions   ProductOrderAddition[]
 
   @@unique([productId, orderId])
 }
@@ -70,4 +70,24 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   products  Product[]
+}
+
+model Addition {
+  id          String                @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  price       Float
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  productId   String?               @db.ObjectId
+  product     Product?              @relation(fields: [productId], references: [id])
+  productOrders ProductOrderAddition[] // Adicionar esta linha
+}
+
+model ProductOrderAddition {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  productOrderId String         @db.ObjectId
+  additionId     String         @db.ObjectId
+  price          Float
+  productOrder   ProductOrder   @relation(fields: [productOrderId], references: [id])
+  addition       Addition       @relation(fields: [additionId], references: [id])
 }

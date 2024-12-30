@@ -1,16 +1,16 @@
 import { IsArray, IsString, IsOptional, IsNumber, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
-// Define a DTO para os extras
-class ExtraDto {
+// Define a DTO para os acréscimos
+class AdditionDto {
   @IsString()
-  name: string;
+  additionId: string;
 
   @IsNumber()
   price: number;
 }
 
-// Atualize a estrutura dos produtos para incluir os extras
+// Atualize a estrutura dos produtos para incluir os acréscimos
 class ProductDto {
   @IsString()
   productId: string;
@@ -20,9 +20,9 @@ class ProductDto {
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => ExtraDto)
+  @Type(() => AdditionDto)
   @IsOptional()
-  extras?: ExtraDto[];
+  additions?: AdditionDto[];
 }
 
 export class CreateOrderDto {
@@ -47,11 +47,10 @@ export class CreateOrderDto {
   @IsOptional()
   status?: 'PENDENTE' | 'PREPARANDO' | 'ENVIADO' | 'CANCELADO';
 
-
   @IsOptional()
   @IsNumber()
   changeFor?: number;
-  
+
   @IsString()
   deliveryMethod: string;
 

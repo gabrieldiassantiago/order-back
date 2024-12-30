@@ -39,7 +39,11 @@ export class OrderService {
 
     const total = products.reduce((sum, product) => {
       const productOrder = data.products.find(p => p.productId === product.id);
-      return sum + product.price * (productOrder ? productOrder.quantity : 0);
+      if (!productOrder) return sum;
+
+      const productTotal = product.price * productOrder.quantity;
+      const additionsTotal = productOrder.additions?.reduce((addSum, addition) => addSum + addition.price, 0) || 0;
+      return sum + productTotal + additionsTotal;
     }, 0) + (neighborhood ? neighborhood.value : 0);
 
     const order = await this.prisma.order.create({
@@ -48,6 +52,12 @@ export class OrderService {
           create: data.products.map(product => ({
             productId: product.productId,
             quantity: product.quantity,
+            additions: {
+              create: product.additions?.map(addition => ({
+                additionId: addition.additionId,
+                price: addition.price,
+              })) || [],
+            },
           })),
         },
         total,
@@ -61,7 +71,16 @@ export class OrderService {
         changeFor: data.changeFor || null,
       },
       include: {
-        products: true,
+        products: {
+          include: {
+            product: true,
+            additions: {
+              include: {
+                addition: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -83,7 +102,8 @@ export class OrderService {
     🛒 *Itens do Pedido:*
     ${products.map(product => {
       const productOrder = order.products.find(p => p.productId === product.id);
-      return `- ${product.name} (x${productOrder ? productOrder.quantity : 0}): R$${(product.price * (productOrder ? productOrder.quantity : 0)).toFixed(2)}`
+      const additionsDetails = productOrder?.additions?.map(addition => `  - ${addition.addition.name} (R$${addition.price.toFixed(2)})`).join('\n') || '';
+      return `- ${product.name} (x${productOrder ? productOrder.quantity : 0}): R$${(product.price * (productOrder ? productOrder.quantity : 0)).toFixed(2)}\n${additionsDetails}`
     }).join('\n')}
 
     ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
@@ -112,6 +132,9 @@ export class OrderService {
 
     return order;
   }
+
+
+
 
   async updateOrder(id: string, data: UpdateOrderDto) {
     const existingOrder = await this.prisma.order.findUnique({
@@ -249,24 +272,46 @@ export class OrderService {
     return ordersWithProducts;
   }
 
-  async getOrderById(id: string) {
-    const order = await this.prisma.order.findUnique({
-      where: { id },
-      include: { products: true },
-    });
+ async getOrderById(id: string) {
+  const order = await this.prisma.order.findUnique({
+    where: { id },
+    include: {
+      products: {
+        include: {
+          product: true,
+          additions: {
+            include: {
+              addition: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
 
     if (!order) {
       throw new Error('Pedido não encontrado');
     }
 
-    const productOrders = await this.prisma.productOrder.findMany({
-      where: { orderId: order.id },
-      include: { product: true },
-    });
+    
+  const productOrders = await this.prisma.productOrder.findMany({
+    where: { orderId: order.id },
+    include: {
+      product: true,
+      additions: {
+        include: {
+          addition: true,
+        },
+      },
+    },
+  });
+
 
     const neighborhood = order.neighborhoodId ? await this.prisma.entregasBairros.findUnique({
       where: { id: order.neighborhoodId },
     }) : null;
+  
 
     return { ...order, products: productOrders, neighborhood };
   }

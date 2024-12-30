@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createProduct(data: { name: string; price: number; stock: number; categoryId: string; availability: boolean }) {
+  async createProduct(data: { name: string; price: number; stock: number; categoryId: string; availability: boolean; additionIds?: string[] }) {
     return this.prisma.product.create({
       data: {
         name: data.name,
@@ -16,6 +16,9 @@ export class ProductService {
           connect: {
             id: data.categoryId,
           },
+        },
+        additions: {
+          connect: data.additionIds?.map((id) => ({ id })),
         },
       },
     });
