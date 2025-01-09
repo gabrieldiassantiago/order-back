@@ -1,11 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+
+interface Product {
+  name: string;
+  price: number;
+  stock: number;
+  categoryId: string;
+  availability: boolean;
+  additionIds?: string[];
+}
+
+
 @Injectable()
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createProduct(data: { name: string; price: number; stock: number; categoryId: string; availability: boolean; additionIds?: string[] }) {
+  async createProduct(data: Product) {
     return this.prisma.product.create({
       data: {
         name: data.name,

@@ -12,7 +12,7 @@ export class NeighborhoodController {
 
   @Get()
   async getAllNeighborhoods() {
-    return this.entregasBairrosService.getAllentregasBairross();
+    return this.entregasBairrosService.getAllentregasBairros();
   }
 
   @Get(':id')

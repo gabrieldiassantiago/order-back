@@ -11,7 +11,7 @@ export class entregasBairrosService {
     });
   }
 
-  async getAllentregasBairross() {
+  async getAllentregasBairros() {
     return this.prisma.entregasBairros.findMany();
   }
 
