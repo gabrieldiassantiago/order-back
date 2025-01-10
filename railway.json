@@ -1,26 +1,16 @@
 {
     "$schema": "https://railway.com/railway.schema.json",
     "build": {
+        "buildCommand": "yarn run build",
+
       "nixpacksPlan": {
-        "providers": ["nodejs_22", "yarn-1_x", "openssl"],
+        "providers": ["node"],
         "phases": {
-          "setup": {
-            "nixPkgs": ["openssh", "yarn"]
-          },
           "install": {
             "dependsOn": ["setup"],
             "cmds": ["yarn install"]
-          },
-          "build": {
-            "dependsOn": ["install"],
-            "cmds": ["yarn run build"]
-          },
-          "start": {
-            "dependsOn": ["build"],
-            "cmds": ["yarn start"]
           }
         }
       }
     }
   }
-  
