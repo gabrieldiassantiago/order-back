@@ -319,6 +319,9 @@ export class OrderService {
 
   async deleteAllOrders() {
     try {
+      
+      await this.prisma.productOrderAddition.deleteMany({});
+      
       await this.prisma.productOrder.deleteMany({});
 
       const deletedOrders = await this.prisma.order.deleteMany({});
