@@ -6,3 +6,4 @@ interface Product {
     availability: boolean;
     additionIds?: string[];
   }
+  

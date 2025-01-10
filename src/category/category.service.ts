@@ -15,6 +15,7 @@ export class CategoryService {
     return this.prisma.category.findMany();
   }
 
+
   async getCategoryById(id: string) {
     return this.prisma.category.findUnique({
       where: { id },
