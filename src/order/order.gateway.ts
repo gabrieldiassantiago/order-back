@@ -14,6 +14,8 @@ export class OrdersGateway {
     this.server.emit('orderUpdated', order);
   }
 
+  
+
   emitProductUpdate(product: any) {
     this.server.emit('productUpdated', product);
   }

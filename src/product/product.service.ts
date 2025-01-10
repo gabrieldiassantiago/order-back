@@ -52,7 +52,7 @@ export class ProductService {
     });
   }
 
-  async updateProduct(id: string, data: { name?: string; price?: number; stock?: number; categoryId?: string; availability?: boolean }) {
+  async updateProduct(id: string, data: Product) {
     const updateData: any = {
       name: data.name,
       price: data.price,

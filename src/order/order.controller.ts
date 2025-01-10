@@ -2,12 +2,14 @@ import { Controller, Post, Body, Put, Param, Delete, Get } from '@nestjs/common'
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dtos/create-order.dto';
 import { UpdateOrderDto } from './dtos/update-order.dto';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 
-
+@ApiTags('orders') @Controller('orders')
 @Controller('orders')
 export class OrderController {
+  
   constructor(private readonly orderService: OrderService) {}
-
+  
   @Post()
   async createOrder(@Body() createOrderDto: CreateOrderDto) {
     return this.orderService.createOrder(createOrderDto);

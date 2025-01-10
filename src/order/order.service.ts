@@ -167,10 +167,12 @@ export class OrderService {
       const neighborhood = await this.prisma.entregasBairros.findUnique({
         where: { id: data.neighborhoodId },
       });
+      
 
       if (!neighborhood) {
         throw new Error('Bairro não encontrado');
       }
+      
 
       total = (total || existingOrder.total) + neighborhood.value;
       updateMessage += `🏘️ Bairro atualizado.\n`;
@@ -288,7 +290,6 @@ export class OrderService {
       },
     },
   });
-
 
     if (!order) {
       throw new Error('Pedido não encontrado');
