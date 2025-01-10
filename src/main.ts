@@ -12,10 +12,7 @@ async function bootstrap() {
   app.use(helmet());
 
   // Carregar o arquivo YAML
-  const yamlDocument = yaml.load(fs.readFileSync('./swagger.yaml', 'utf8'));
 
-  const document = SwaggerModule.createDocument(app, yamlDocument);
-  SwaggerModule.setup('api', app, document);
 
   await app.listen(3000);
 }
