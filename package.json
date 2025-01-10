@@ -38,6 +38,7 @@
     "@whiskeysockets/baileys": "^6.7.9",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
+    "eslint-config": "git+https://github.com/whiskeysockets/eslint-config.git",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
     "express-rate-limit": "^7.5.0",
