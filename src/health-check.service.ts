@@ -19,7 +19,7 @@ export class HealthCheckService {
     }
 
     private async checkHealth() {
-        const apiUrl = 'http://localhost:3000/health';
+        const apiUrl = 'https://order-back-1.onrender.com/health';
         try {
             const response = await fetch(apiUrl);
             if (response.status === 200) {
